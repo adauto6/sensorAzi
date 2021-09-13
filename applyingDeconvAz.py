@@ -8,20 +8,26 @@ from scipy import signal
 
 import numpy as np
 
+from sklearn.metrics import r2_score
+
 df = pd.read_csv('analise.csv')
 
-#mu1 = 0.75
+mu1 = 0.75
 
-mu1 = 0.23
+#mu1 = 0.23
 
 sig = 0.05
 
-volumes = [1, 2, 3, 4, 5, 6, 7]
+volumes = [1, 2, 3, 6, 7]
+
+y_value = [] 
+
+x_value = [0.2, 0.4, 0.6, 1.2, 1.4] # Concentracao Retirada do volume e qtd de azitromicina colocada
 
 for volume in volumes:
-	signalVolu = df[f'Av. I2 {volume}0uL'].values[100:188]
+	signalVolu = df[f'Av. I2 {volume}0uL'].values #[100:188]
 
-	x = df['E (V)'].values[100:188]
+	x = df['E (V)'].values #[100:188]
 
 	gauss1 = (1/(mu1*np.sqrt(2*np.pi)))*np.exp((-0.5)*( (x-mu1)/sig)**2)
 
@@ -47,12 +53,18 @@ for volume in volumes:
 
 #	plt.plot(x, signal_t_wo_g1, label=f'Deconv{volume}0uL')
 	
+	y_value.append(max(z2))
+	
+#	x_value.append(x[z2.index(max(z2))])
+	
+#	x_value.append(x[np.where(max(z2) == z2)])
+	
 	plt.plot(x, z2, label=f'Deconv{volume}0uL - filtered')
 
-	#plt.yticks(np.arange(-0.2, 0.4, 0.05)) 
-	#plt.xlim(0.1, 1.0)
+#	plt.yticks(np.arange(-0.2, 0.4, 0.05)) 
+#	plt.xlim(0.1, 1.0)
 
-	#plt.ylim(-0.1, 0.2)
+#	plt.ylim(-0.1, 0.2)
 
 	plt.legend()
 	if volume >= 4:
@@ -76,9 +88,41 @@ for volume in volumes:
 
 	plt.plot(x, signal_conv_t, label='signal conv t')
 
+
 	plt.legend()
 	if volume >= 4:
 		plt.savefig('signal.png')
+
+print(y_value, x_value)
+plt.figure(4)
+
+coef = np.polyfit(x_value,y_value,1)
+poly1d_fn = np.poly1d(coef) 
+ 
+#plt.plot(x,y, 'yo', x, poly1d_fn(x_value))
+	
+y_calc = poly1d_fn(x_value)
+
+realy = []
+
+calcrealy = []
+
+print(y_calc, type(y_calc))
+
+for i,ii in zip(y_value, y_calc):
+	realy.append(abs(i))	
+	calcrealy.append(abs(ii))	
+
+R2 = r2_score(realy, calcrealy)	
+	
+plt.plot(x_value, y_value, label='Dados')
+plt.plot(x_value, y_calc,  label=f'y={"{:.2f}".format(abs(coef[0]))}*x + {"{:.2f}".format(abs(coef[1]))}, R^2 = {"{:.2f}".format(R2)}')
+
+plt.xlabel('Concetracao (mg/L)')
+plt.ylabel('Corrente (apos convolucao e filtro)')
+plt.legend()
+plt.savefig('fitting.png')
+
 
 #plt.show()
 
