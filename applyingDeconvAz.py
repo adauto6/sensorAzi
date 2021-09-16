@@ -20,6 +20,10 @@ for filename in filenames:
 	print(filename)
 #filename = 'analise'
 
+	for i in range(1,5):
+		plt.figure(i)
+		plt.clf()
+		
 	df = pd.read_csv(filename+'.csv')
 
 	#mu1 = 0.75
@@ -103,7 +107,7 @@ for filename in filenames:
 
 		plt.figure(2)
 
-		plt.plot(x, gauss1, label='Curva de Gauss para {volume}uL')
+		plt.plot(x, gauss1, label=f'Curva de Gauss para {volume}uL')
 		
 		plt.title(f'{ptitle}')
 
@@ -166,7 +170,7 @@ for filename in filenames:
 	plt.legend()
 	plt.title(f'{ptitle}')
 	plt.savefig(f'fitting-{filename}.png')
-
+	plt.clf()
 
 	#plt.show()
 
