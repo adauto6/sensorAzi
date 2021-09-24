@@ -14,7 +14,7 @@ from sklearn.metrics import r2_score
 # filenames = AguaRIo.csv  analiseAguaLagoa.csv  analise.csv  poco.csv  torneira.csv
 # analise.csv --> para obter a equacao da reta 
 
-filenames = ['AguaRIo'] #,  'analiseAguaLagoa',  'analise',  'poco',  'torneira']
+filenames = ['AguaRIo', 'analiseAguaLagoa',  'analise',  'poco',  'torneira']
 
 for filename in filenames:
 	print(filename)
@@ -52,100 +52,32 @@ for filename in filenames:
 		elif filename == 'torneira':
 			ptitle = 'Am. de Agua de Torneira'	
 	y_value = [] 
-
+	vol0 = 1
 	for volume in volumes:
-		signalVolu = df[f'Av. I2 {volume}uL'].values[100:188]
-
-		x = df['E (V)'].values[100:188]
-
-		gauss1 = (1/(mu1*np.sqrt(2*np.pi)))*np.exp((-0.5)*( (x-mu1)/sig)**2)
-
-		gauss1_f = fft(gauss1)
-
-		signal_f = fft(signalVolu)
-
-		signal_f_wo_g1 = signal_f / gauss1_f.conj()
-
-		signal_t_wo_g1 = ifft(signal_f_wo_g1)
-
-		plt.figure(1)
-
-		b, a = signal.butter(4, 0.05, 'low')
-		
-		zi = signal.lfilter_zi(b, a)
-		
-		z, _ = signal.lfilter(b, a, signal_t_wo_g1, zi=zi*signal_t_wo_g1[0])
-		
-		z2, _ = signal.lfilter(b, a, z, zi=zi*z[0])
-		
-		signal_t_wo_g1_filter = signal.filtfilt(b, a, signal_t_wo_g1)
-
-		#plt.plot(x, signal_t_wo_g1, label=f'Deconv{volume}0uL')
+		print(volume)
 		if volume == 0:
-			valorZero = min(z2)
+			vol0 = df[f'Av. I2 {volume}uL'].values[100:188]
 		else:
-			y_value.append(min(z2))
-		
-	#	x_value.append(x[z2.index(max(z2))])
-		
-	#	x_value.append(x[np.where(max(z2) == z2)])
+			signalVolu = df[f'Av. I2 {volume}uL'].values[100:188]/vol0
 
-		plt.title(f'{ptitle}')
-				
-		plt.plot(x, z2, label=f'Deconv{volume}uL - filtrado')
+			x = df['E (V)'].values[100:188]
 
-		plt.grid()
+			plt.figure(1)
 
-		plt.xlabel('Potencial (V)')
-		plt.ylabel('Corrente (A)')
+			plt.title(f'{ptitle}')
+					
+			plt.plot(x, signalVolu, label=f'Deconv{volume}uL - dividido por volume 0 uL')
 
+			y_value.append(max(signalVolu))
+			
+			plt.grid()
 
-	#	plt.yticks(np.arange(-0.2, 0.4, 0.05)) 
-	#	plt.xlim(0.1, 1.0)
+			plt.xlabel('Potencial (V)')
+			plt.ylabel(f'Corrente {volume}uL / Corrente 0uL')
 
-	#	plt.ylim(-0.1, 0.2)
-
-		plt.legend()
-		if volume >= 4:
-			plt.savefig(f'deconv-{filename}.png', dpi=1200)
-
-		plt.figure(2)
-
-		plt.plot(x, gauss1, label=f'Curva de Gauss para {volume}uL')
-		
-		plt.title(f'{ptitle}')
-
-		plt.xlabel('Potencial (V)')
-		plt.ylabel('Corrente (A)')
-
-		
-		plt.legend()
-		if volume >= 4:
-			plt.savefig(f'gauss1-{filename}.png')
-
-		plt.figure(3)
-
-		signal_conv_f = signal_f_wo_g1 * gauss1_f.conj()
-
-		signal_conv_t = ifft(signal_conv_f)
-
-		plt.plot(x, signalVolu, label=f'Corrente para {volume}uL')
-
-		plt.plot(x, signal_conv_t, label='Corrente Conv. t')
-		
-		plt.title(f'{ptitle}')
-		
-		plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
-		plt.tight_layout()
-		
-		plt.xlabel('Potencial (V)')
-		plt.ylabel('Corrente (A)')
-		
-		if volume >= 4:
-			plt.savefig(f'signal-{filename}.png')
-
-	print(y_value, x_value)
-	plt.figure(4)
+			plt.legend()
+	plt.savefig(f'divisao-{filename}.png', dpi=1200)
+	plt.figure(2)
 
 	coef = np.polyfit(x_value,y_value,1)
 	poly1d_fn = np.poly1d(coef) 
@@ -173,13 +105,12 @@ for filename in filenames:
 	plt.plot(np.array(x_value), y_value, label='Dados')
 	plt.plot(np.array(x_value), y_calc,  label=f'y={"{:.2e}".format(np.real(coef[0]))}*x + {"{:.2e}".format(np.real(coef[1]))}, R^2 = {"{:.3f}".format(R2)}')
 
-	concCalc = (-np.real(coef[1])+valorZero)/np.real(coef[0])
+	concCalc = (-np.real(coef[1]))/np.real(coef[0])
 	plt.xlabel('Concetracao (mg/L)')
-	plt.ylabel('Corrente (apos convolucao e filtro)')
+	plt.ylabel('Corrente (apos divisao)')
 	plt.legend()
 	plt.title(f'{ptitle}, Conc. 0uL = {"{:.3f}".format(np.real(concCalc))} mg/L')
-	plt.savefig(f'fitting-{filename}.png')
+	plt.savefig(f'fitting-divisao{filename}.png')
 	plt.clf()
 
-	#plt.show()
-
+		
